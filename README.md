@@ -33,10 +33,8 @@ There are two ways you can configure the proxy server. You may:
   --port          Port the proxy server should liston on
 
   Examples:
-    index.js -u user1 -p mypass1337 -o -d yourdomain
-    https://your.domain.edu/CRMSALES/api/data/v8.0 -v
-    index.js --username user1 -password mypass1337 --domain yourdomain -apiurl
-    https://your.domain.org/CRMINTERNAL/api/data/v8.1/ --port 1337
+    index.js -u user1 -p mypass1337 -o -d yourdomain https://your.domain.edu/CRMSALES/api/data/v8.0 -v
+    index.js --username user1 -password mypass1337 --domain yourdomain -apiurl https://your.domain.org/CRMINTERNAL/api/data/v8.1/ --port 1337
 
   ```
 
