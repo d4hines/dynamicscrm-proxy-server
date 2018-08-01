@@ -12,21 +12,25 @@ const argv = require('yargs')
   .describe({
     username: 'CRM Username',
     password: 'CRM Password',
+    domain: 'The Active Directory Domain to authenticate with',
     apiUrl: 'CRM API URL',
     verbose: 'Verbose Log Level',
     port: 'Port the proxy server should liston on'
   })
-  .example('$0 -u user1 -p mypass1337 -o https://internalcrm.mydomain.com/CRMRECRUIT/api/data/v8.0 -v')
-  .example('$0 --username user1 -password mypass1337 -apiurl https://salescrm.mydomain.com/SALESCRM/api/data/v8.1/ --port 1337')
+  .example('$0 -u user1 -p mypass1337 -d MYDOMAINNT -o https://internalcrm.mydomain.com/CRMRECRUIT/api/data/v8.0 -v')
+  .example('$0 --username user1 -password mypass1337 --domain MYDOMAINNT -apiurl https://salescrm.mydomain.com/SALESCRM/api/data/v8.1/ --port 1337')
   .boolean('v')
   .alias({
     username: 'u',
     password: 'p',
+    domain: 'd',
     apiUrl: 'a',
     verbose: 'v'
   })
   .demandOption([
-    'username', 'password',
+    'username',
+    'password',
+    'domain',
     'apiUrl'
   ]).argv;
 
@@ -34,6 +38,7 @@ const VERBOSE_FLAG = argv.verbose;
 const APIURL = argv.apiUrl;
 const USERNAME = argv.username
 const PASSWORD = argv.password;
+const DOMAIN = argv.domain;
 const PORT = argv.port || 3000
 
 /**
@@ -67,7 +72,7 @@ function CRMRequest({
     password: PASSWORD,
     headers: HEADERS,
     url: APIURL + url,
-    ntlm_domain: 'REGENTNT',
+    ntlm_domain: DOMAIN,
     workstation: process.env.COMPUTERNAME,
   }
   log(chalk.yellow(`Forwarding ${method} to ${url}`), true);

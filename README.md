@@ -5,7 +5,7 @@ A simple proxy server that allows a client to bypass NTLM authentication with an
 ## Quick Start
 
 ``` bash
-dynamics-crm-proxy -u yourusername -p yourpassword -a https://your.domain.com/YOURORG/api/data/v8.0/
+dynamics-crm-proxy -u yourusername -p yourpassword -d YOURDOMAIN -a https://your.domain.com/YOURORG/api/data/v8.0/
 ```
 
 Run `dynamics-crm-proxy --help` for more info/examples, or keep reading below.
@@ -16,7 +16,7 @@ Before using the proxy, you must configure it with the CRM's api url and the cre
 
 There are two ways you can configure the proxy server. You may:
 
-- Set environmental variables `CRMPROXY_USERNAME`, `CRMPROXY_PASSWORD`, `CRMPROXY_API_URL`, and, optionally, `CRMPROXY_PORT`
+- Set environmental variables `CRMPROXY_USERNAME`, `CRMPROXY_PASSWORD`, `CRMPROXY_API_URL`, `CRMPROXY_DOMAIN` and, optionally, `CRMPROXY_PORT`
 - Pass in command-line arguments. Here's the Yargs output:
 
   ``` bash
@@ -27,15 +27,30 @@ There are two ways you can configure the proxy server. You may:
   --version       Show version number                                  [boolean]
   --username, -u  CRM Username                                        [required]
   --password, -p  CRM Password                                        [required]
+  --domain, -d    The Active Directory Domain to authenticate with    [required]
   --apiUrl, -a    CRM API URL                                         [required]
   --verbose, -v   Verbose Log Level                                    [boolean]
   --port          Port the proxy server should liston on
 
   Examples:
-    index.js -u user1 -p mypass1337 -o
-    https://internalcrm.regent.edu/CRMRECRUIT/api/data/v8.0 -v
-    index.js --username user1 -password mypass1337 -apiurl
-    https://advisedevcrm.regent.edu/CRMADVISETEST/api/data/v8.1/ --port 1337
+    index.js -u user1 -p mypass1337 -o -d yourdomain
+    https://your.domain.edu/CRMSALES/api/data/v8.0 -v
+    index.js --username user1 -password mypass1337 --domain yourdomain -apiurl
+    https://your.domain.org/CRMINTERNAL/api/data/v8.1/ --port 1337
 
   ```
 
+## Docker support
+
+You can also run the proxy server as a docker file. E.g:
+
+``` bash
+docker run \
+-e CRMPROXY_USERNAME=yourusernam \
+-e CRMPROXY_PASSWORD=yourpassword \
+-e CRMPROXY_DOMAIN=yourdomain \
+-e CRMPROXY_API_URL=https://rctrdevcrm.regent.edu/CRMRECRUITTEST/api/data/v8.0/ \
+-p 3000:3000 \
+d4hines/dynamicscrm-proxy-server
+
+```
