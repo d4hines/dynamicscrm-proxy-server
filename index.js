@@ -5,6 +5,7 @@ const cors = require('cors');
 const app = express();
 const chalk = require('chalk');
 const ntlm = require('request-ntlm-continued');
+const request = require('request');
 
 const argv = require('yargs')
   .usage('Usage: $0 [options]')
@@ -35,11 +36,15 @@ const argv = require('yargs')
   ]).argv;
 
 const VERBOSE_FLAG = argv.verbose;
-const APIURL = argv.apiUrl;
-const USERNAME = argv.username
+const API_URL = argv.apiUrl;
+const USERNAME = argv.username;
 const PASSWORD = argv.password;
 const DOMAIN = argv.domain;
 const PORT = argv.port || 3000
+
+if (VERBOSE_FLAG) {
+  request.debug = true;
+}
 
 /**
  * @param {string} message - the message to be logged.
@@ -51,36 +56,33 @@ function log(message, verbose) {
   }
 }
 
-const HEADERS = {
-  'Accept': 'application/json',
-  'OData-MaxVersion': '4.0',
-  'OData-Version': '4.0',
-  'Prefer': 'odata.include-annotations="*"',
-  'Content-Type': 'application/json; charset=utf-8'
-}
-
-/** Performs an NTLM enabled request against the CRM, then passes the response to the callback */
+/** Performs an NTLM enabled request against the CRM, then passes 
+ * the response to the callback */
 function CRMRequest({
   method,
   url,
   headers,
   body
-}, cb) {
+}, cb, errorCb) {
   delete headers.host;
+  /* We have to delete the accept-encoding header, otherwise 
+     the proxy doesn't know to deflate the gzipped response.*/
+  delete headers['accept-encoding'];
   var opts = {
+    headers,
     username: USERNAME,
     password: PASSWORD,
-    headers: HEADERS,
-    url: APIURL + url,
+    url: API_URL + url,
     ntlm_domain: DOMAIN,
     workstation: process.env.COMPUTERNAME,
   }
   log(chalk.yellow(`Forwarding ${method} to ${url}`), true);
   ntlm[method.toLowerCase()](opts, body || null, (err, res, resBody) => {
     if (err) {
-      throw err;
+      errorCb(err)
+    } else {
+      cb(res);
     }
-    cb(res);
   });
 }
 
@@ -92,7 +94,7 @@ function startServer() {
     exposedHeaders: 'odata-entityid'
   }));
 
-  app.all('/*', (origReq, origRes) => {
+  app.all('/*', (origReq, origRes, next) => {
     CRMRequest(origReq, ({
       headers,
       body,
@@ -107,22 +109,35 @@ function startServer() {
       origRes.statusMessage = statusMessage;
       origRes.send(body);
       log(chalk.green('Response sent!'), true);
-    });
+    }, next);
   });
   app.listen(PORT, () => log('CRM Web API Proxy listening on port 3000!'));
 }
 
+const DEFAULT_HEADERS = {
+  'Accept': 'application/json',
+  'OData-MaxVersion': '4.0',
+  'OData-Version': '4.0',
+  'Prefer': 'odata.include-annotations="*"',
+  'Content-Type': 'application/json; charset=utf-8'
+}
+
 // Perform a test request to validate the configuration is correct, 
 // then start the server
+const isAPIEndpoint = /(api\/data\/v\d\.\d\/?)$/.test(API_URL);
+const prepend = /\/$/.test(API_URL) ? '' : '/';
 CRMRequest({
   method: 'GET',
-  url: 'WhoAmI()',
-  headers: HEADERS
+  url: isAPIEndpoint ? prepend + 'WhoAmI()' : '',
+  headers: DEFAULT_HEADERS
 }, ({
-  status,
   statusCode,
-  body
 }) => {
-  log(chalk.green('Successfully connected to ' + APIURL));
+  if (statusCode !== 200) {
+    throw new Error(isAPIEndpoint ?
+      `WhoAmI() request failed at ${API_URL} with status code ${statusCode}` :
+      `Could not connect to ${API_URL}. Request failed with status code ${statusCode}`)
+  }
+  log(chalk.green('Successfully connected to ' + API_URL));
   startServer();
-});
+}, (err) => { throw err });
